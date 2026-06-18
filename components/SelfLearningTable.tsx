@@ -3090,6 +3090,94 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
             }
           }
         }
+        
+        // Check if we are inside a Brainstorm Map
+        const brainstormBoard = activeEl?.closest('.brainstorm-card-wrapper') as HTMLElement | null;
+        if (brainstormBoard) {
+          e.preventDefault();
+          const gridContainer = brainstormBoard.querySelector('div[style*="display: grid"]') || brainstormBoard.querySelector('div[style*="display:grid"]');
+          if (gridContainer) {
+            const lastCard = gridContainer.lastElementChild as HTMLElement | null;
+            if (lastCard) {
+              const newCard = lastCard.cloneNode(true) as HTMLElement;
+              const boxEl = newCard.querySelector('.brainstorm-box') as HTMLElement | null;
+              if (boxEl) {
+                boxEl.innerHTML = 'Add insight...';
+              }
+              const titleEl = newCard.querySelector('div[style*="font-size: 11px"]') as HTMLElement | null;
+              if (titleEl) {
+                titleEl.innerText = 'New Insight / Consideration';
+              }
+              gridContainer.appendChild(newCard);
+              setTimeout(() => {
+                if (boxEl) {
+                  const range = document.createRange();
+                  range.selectNodeContents(boxEl);
+                  range.collapse(true);
+                  const sel = window.getSelection();
+                  sel?.removeAllRanges();
+                  sel?.addRange(range);
+                  boxEl.focus();
+                }
+              }, 10);
+              if (editorRef.current && selectedTopic) {
+                updateTopic(selectedTopic.id, { content: editorRef.current.innerHTML });
+              }
+            }
+          }
+        }
+        
+        // Check if we are inside a Pros & Cons Grid (which also has a grid column system)
+        const prosconsBoard = activeEl?.closest('.pros-cons-wrapper') as HTMLElement | null;
+        if (prosconsBoard) {
+          e.preventDefault();
+          const pGridContainer = prosconsBoard.querySelector('div[style*="display: grid"]') || prosconsBoard.querySelector('div[style*="display:grid"]');
+          if (pGridContainer) {
+            const currentBox = activeEl?.closest('.pros-box, .cons-box');
+            if (currentBox) {
+               const isChild = !!pGridContainer;
+               if (isChild) {
+                 const greenBox = pGridContainer.children[pGridContainer.children.length - 2];
+                 const redBox = pGridContainer.children[pGridContainer.children.length - 1];
+                 
+                 if (greenBox && redBox) {
+                   const newGreenBox = greenBox.cloneNode(true) as HTMLElement;
+                   const greenEl = newGreenBox.querySelector('.pros-box') as HTMLElement | null;
+                   if (greenEl) { greenEl.innerHTML = 'List positive aspect...'; }
+                   if (newGreenBox.querySelector('div[style*="font-size: 11px"]')) {
+                     (newGreenBox.querySelector('div[style*="font-size: 11px"]') as HTMLElement).innerText = 'ADDITIONAL PROS (+)';
+                   }
+                   
+                   const newRedBox = redBox.cloneNode(true) as HTMLElement;
+                   const redEl = newRedBox.querySelector('.cons-box') as HTMLElement | null;
+                   if (redEl) { redEl.innerHTML = 'List drawback...'; }
+                   if (newRedBox.querySelector('div[style*="font-size: 11px"]')) {
+                     (newRedBox.querySelector('div[style*="font-size: 11px"]') as HTMLElement).innerText = 'ADDITIONAL CONS (-)';
+                   }
+                   
+                   pGridContainer.appendChild(newGreenBox);
+                   pGridContainer.appendChild(newRedBox);
+                   
+                   setTimeout(() => {
+                     if (greenEl) {
+                       const range = document.createRange();
+                       range.selectNodeContents(greenEl);
+                       range.collapse(true);
+                       const sel = window.getSelection();
+                       sel?.removeAllRanges();
+                       sel?.addRange(range);
+                       greenEl.focus();
+                     }
+                   }, 10);
+                   
+                   if (editorRef.current && selectedTopic) {
+                     updateTopic(selectedTopic.id, { content: editorRef.current.innerHTML });
+                   }
+                 }
+               }
+            }
+          }
+        }
       }
     }
   };
@@ -5776,7 +5864,7 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
                       .editor-content table,
                       .editor-content th,
                       .editor-content td {
-                        border: 1px solid #cbd5e1;
+                        border: 1.5px solid ${editorBorderColor} !important;
                       }
                       /* Except when they explicitly have no borders inline, or our custom brain-maps have no borders if we want, but our Custom Grids use divs not tables anyway! */
 
