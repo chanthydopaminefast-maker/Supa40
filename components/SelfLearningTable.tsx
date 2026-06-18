@@ -33,6 +33,14 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
   const [pdfMargin, setPdfMargin] = useState(0.5);
   const [pdfPaperStyle, setPdfPaperStyle] = useState('none');
   const [showTableToolsMenu, setShowTableToolsMenu] = useState(false);
+
+  const toggleDropdown = (menuName: 'export' | 'tableTools' | 'more' | 'moreTools') => {
+    setShowExportMenu(menuName === 'export' ? !showExportMenu : false);
+    setShowTableToolsMenu(menuName === 'tableTools' ? !showTableToolsMenu : false);
+    setShowMoreMenu(menuName === 'more' ? !showMoreMenu : false);
+    setShowMoreTools(menuName === 'moreTools' ? !showMoreTools : false);
+  };
+
   const [isToolbarHidden, setIsToolbarHidden] = useState(() => {
     return localStorage.getItem('self_learning_toolbar_hidden') === 'true';
   });
@@ -362,6 +370,22 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
   useEffect(() => {
     localStorage.setItem('self_learning_plain_light', String(forceLightBg));
   }, [forceLightBg]);
+
+  // Global click outside to dismiss menus
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      // If clicking inside the dropdown button or menu itself, do nothing
+      if ((e.target as HTMLElement).closest('.z-\\[200\\]') || (e.target as HTMLElement).closest('.z-\\[250\\]') || (e.target as HTMLElement).closest('button')) {
+        return; 
+      }
+      setShowExportMenu(false);
+      setShowTableToolsMenu(false);
+      setShowMoreMenu(false);
+      setShowMoreTools(false);
+    };
+    document.addEventListener('mousedown', handleGlobalClick);
+    return () => document.removeEventListener('mousedown', handleGlobalClick);
+  }, []);
 
   useEffect(() => {
     if (topics.length > 0) {
@@ -2537,9 +2561,9 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
     try {
         let promptText = '';
         if (isSelectionMode) {
-          promptText = `Enhance ONLY this selected part of the note. Improve clarity, fix spelling/grammar, structure cleanly, and expand slightly if helpful. Return the improved version as HTML formatted snippet. Output ONLY valid HTML formatted text without any markdown or code block wrappers. CRITICAL: Output ONLY the raw content elements. Do NOT wrap the output in a centering or max-width container, card, or decorative wrapper. Selected text: ${selectedText}`;
+          promptText = `Enhance ONLY this selected part of the note. Improve clarity, fix spelling/grammar, structure cleanly, and expand slightly if helpful. Return the improved version as HTML formatted snippet. Output ONLY valid HTML formatted text without any markdown wrappers. CRITICAL: Output ONLY the raw content elements. Do NOT wrap the output in a centering container or card. DO NOT use emojis (like ⭐, ✨) as bullet points. Use standard HTML <ul> and <li>. Selected text: ${selectedText}`;
         } else {
-          promptText = `Enhance this note. Improve structure, fix grammar, and expand slightly if it helps clarity. Return HTML formatted string only. CRITICAL: Output ONLY the raw content elements. Do NOT wrap the output in a centering or max-width container, card, or decorative wrapper. Current content: ${selectedTopic.content}`;
+          promptText = `Enhance this note. Improve structure, fix grammar, and expand slightly if it helps clarity. Return HTML formatted string only. CRITICAL: Output ONLY the raw content elements. Do NOT wrap the output in a centering container or card. DO NOT use emojis (like ⭐, ✨) as bullet points. Use standard HTML <ul> and <li>. Current content: ${selectedTopic.content}`;
         }
 
         const result = await callNeuralEngine(
@@ -4710,7 +4734,7 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
                     <div className="h-6 w-px bg-white/30 mx-1" />
 
                     <button 
-                      onClick={() => setShowMoreTools(!showMoreTools)}
+                      onClick={() => toggleDropdown('moreTools')}
                       className={`p-1.5 rounded-lg font-black text-[10px] uppercase transition-all flex items-center gap-1 ${showMoreTools ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white/40 text-slate-600 hover:bg-white/60'}`}
                     >
                       <Settings2 size={14} className={showMoreTools ? 'animate-spin-slow' : ''} />
@@ -4889,7 +4913,7 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
 
                         <div className="relative z-[200]">
                           <button 
-                            onClick={() => setShowExportMenu(!showExportMenu)}
+                            onClick={() => toggleDropdown('export')}
                             className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold shadow-sm transition-all font-sans"
                             title="Export notes"
                           >
@@ -4924,7 +4948,7 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
                         {activeTableCell && (
                           <div className="relative z-[200]">
                             <button 
-                              onClick={() => setShowTableToolsMenu(!showTableToolsMenu)}
+                              onClick={() => toggleDropdown('tableTools')}
                             className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold shadow-sm transition-all font-sans"
                             title="Table Tools"
                           >
@@ -5027,7 +5051,7 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
                         {/* MORE Tools Dropdown (Includes AI Tutor, AI Enhance, Upload File, Synthesis Cards, Q&A Board) */}
                         <div className="relative z-[200]">
                           <button 
-                            onClick={() => setShowMoreMenu(!showMoreMenu)}
+                            onClick={() => toggleDropdown('more')}
                             className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold shadow-sm transition-all font-sans"
                             title="More Actions & Layouts"
                           >
@@ -5743,6 +5767,18 @@ export const SelfLearningTable: React.FC<SelfLearningTableProps> = ({ data, onUp
                         text-decoration: underline !important;
                         font-weight: 700 !important;
                       }
+
+                      /* Restore borders for pasted tables! Tailwind removes all borders. */
+                      .editor-content table {
+                        border-collapse: collapse !important;
+                        width: 100%;
+                      }
+                      .editor-content table,
+                      .editor-content th,
+                      .editor-content td {
+                        border: 1px solid #cbd5e1;
+                      }
+                      /* Except when they explicitly have no borders inline, or our custom brain-maps have no borders if we want, but our Custom Grids use divs not tables anyway! */
 
                       .editor-content ul {
                         list-style-type: disc;
